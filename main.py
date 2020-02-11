@@ -70,7 +70,8 @@ def computeTime(rtc):
         if bitNum == 59:
             if timeInfo[0] != 0 or timeInfo[20] != 1 or sum(timeInfo[21:29]) % 2 != 0 or sum(timeInfo[29:36]) % 2 != 0 or sum(timeInfo[36:59]) % 2 != 0:
                 print("severe error: parity bits or constant bits have unexpected values")
-                break
+                #break
+                return True
             minute    =  timeInfo[21] + 2 * timeInfo[22] + 4 * timeInfo[23] + 8 * timeInfo[24] + 10 * timeInfo[25] + 20 * timeInfo[26] + 40 * timeInfo[27] - 1 # warum -1 ???
             stunde    =  timeInfo[29] + 2 * timeInfo[30] + 4 * timeInfo[31] + 8 * timeInfo[32] + 10 * timeInfo[33] + 20 * timeInfo[34]
             tag       =  timeInfo[36] + 2 * timeInfo[37] + 4 * timeInfo[38] + 8 * timeInfo[39] + 10 * timeInfo[40] + 20 * timeInfo[41]
