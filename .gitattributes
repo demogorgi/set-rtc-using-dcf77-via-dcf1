@@ -1,0 +1,4 @@
+# These files end up on a MicroPython board, where CRLF is just noise.
+# Normalise everything to LF, in the repository and in the working tree.
+* text=auto eol=lf
+*.jpg binary
