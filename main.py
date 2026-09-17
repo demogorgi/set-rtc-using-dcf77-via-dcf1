@@ -1,23 +1,28 @@
-# Micropython script to set rtc-time to time from
-# DCF1 receiver module https://www.pollin.de/p/dcf-77-empfangsmodul-dcf1-810054?gclid=EAIaIQobChMIpdOkt7bK5wIViM13Ch0Tsw1dEAQYASABEgKgafD_BwE
-# DCF1 module receives DCF77 signal, see https://en.wikipedia.org/wiki/DCF77
+# Micropython script to set the rtc time to the time sent by a DCF1 receiver
+# module: https://www.pollin.de/p/dcf-77-empfangsmodul-dcf1-810054
+# The DCF1 module receives the DCF77 signal, see https://en.wikipedia.org/wiki/DCF77
 
 import dcf2rtc
-from machine import Pin, Signal, RTC
+from machine import Pin, RTC
 
-# to wake up dcf1 (maybe connecting to PON pin is sufficient)
-pon_pin = Pin(14, Pin.OUT) #D5
-#pon_pin.on()
-#sleep_ms(200)
-#pon_pin.off()
+# Wiring on a Wemos D1 mini pro (ESP8266), see README.md
+PON_PIN  = 14   # D5 - PON of the DCF1
+DATA_PIN = 12   # D6 - demodulated signal of the DCF1
+
+# PON is active low: the DCF1 only runs while this pin is held at 0. Creating
+# the pin without an explicit value leaves it high on the ESP8266, which keeps
+# the receiver switched off and the data line flat - measured, not guessed.
+pon_pin = Pin(PON_PIN, Pin.OUT, value=0)
 
 # dcf1
-dcf = Pin(12, Pin.IN) #D6
+dcf = Pin(DATA_PIN, Pin.IN)
 
 # real time clock
 rtc = RTC()
 
-cnd = True
-while cnd:
-    if dcf2rtc.detectNewMinute(dcf):
-        cnd = dcf2rtc.computeTime(rtc,dcf)
+# One telegram takes a minute, and a weak signal or a single lost bit makes it
+# unusable - so keep trying until one of them decodes cleanly.
+while True:
+    if dcf2rtc.detectNewMinute(dcf) and dcf2rtc.computeTime(rtc, dcf):
+        break
+    print("no valid telegram, retrying ...")
