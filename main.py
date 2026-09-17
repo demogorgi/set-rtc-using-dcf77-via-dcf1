@@ -9,6 +9,10 @@ from machine import Pin, RTC
 PON_PIN  = 14   # D5 - PON of the DCF1
 DATA_PIN = 12   # D6 - demodulated signal of the DCF1
 
+# DCF77 carries German local time. Set this to True to store UTC in the RTC
+# instead, which spares you the twice yearly jump when you log or compare times.
+USE_UTC = False
+
 # PON is active low: the DCF1 only runs while this pin is held at 0. Creating
 # the pin without an explicit value leaves it high on the ESP8266, which keeps
 # the receiver switched off and the data line flat - measured, not guessed.
@@ -23,6 +27,6 @@ rtc = RTC()
 # One telegram takes a minute, and a weak signal or a single lost bit makes it
 # unusable - so keep trying until one of them decodes cleanly.
 while True:
-    if dcf2rtc.detectNewMinute(dcf) and dcf2rtc.computeTime(rtc, dcf):
+    if dcf2rtc.detectNewMinute(dcf) and dcf2rtc.computeTime(rtc, dcf, utc=USE_UTC):
         break
     print("no valid telegram, retrying ...")
