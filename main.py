@@ -13,6 +13,14 @@ DATA_PIN = 12   # D6 - demodulated signal of the DCF1
 # instead, which spares you the twice yearly jump when you log or compare times.
 USE_UTC = False
 
+# Set this to True to watch every received bit scroll past in the REPL. It is
+# the quickest way to tell a reception problem from a decoding problem: no bits
+# at all means the receiver is not delivering, a stream that never reaches 59
+# means bits are being lost.
+SHOW_BITS = False
+
+dcf2rtc.DEBUG = SHOW_BITS
+
 # PON is active low: the DCF1 only runs while this pin is held at 0. Creating
 # the pin without an explicit value leaves it high on the ESP8266, which keeps
 # the receiver switched off and the data line flat - measured, not guessed.
