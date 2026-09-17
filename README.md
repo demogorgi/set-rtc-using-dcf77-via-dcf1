@@ -113,9 +113,20 @@ full hour.
 Both functions give up after a timeout and return `False`, so a disconnected or
 badly received module makes the script retry instead of hanging forever.
 
-Set `DEBUG = True` in [dcf2rtc.py](dcf2rtc.py) to print every received bit. Keep
-it off otherwise — printing over the serial line is slow enough to disturb the
-50 ms sampling.
+Set `SHOW_BITS = True` in [main.py](main.py) to print every received bit:
+
+```
+bitNum: value
+0: 0
+1: 0
+...
+58: 0
+```
+
+That is the quickest way to tell a reception problem from a decoding problem —
+no bits at all means the receiver is not delivering, a stream that never reaches
+59 means bits are being lost. It is off by default because printing over the
+serial line costs time inside the 50 ms sampling loop.
 
 ## What a telegram has to survive
 
