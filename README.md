@@ -164,3 +164,8 @@ are just another entry in a table. Plain CPython, no dependencies, no board.
 * The module needs `utime.mktime()` and `utime.localtime()`, which the ESP8266
   port provides. A port without them cannot do the UTC conversion or the
   weekday cross check.
+
+## License
+
+Public domain, see [LICENSE](LICENSE) — the Unlicense. Do whatever you like
+with it; no attribution required.
