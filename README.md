@@ -10,18 +10,23 @@ from the DCF77 time signal, received with a Pollin DCF1 module.
 
 Tested with a Wemos D1 mini pro (ESP8266) running MicroPython 1.22.2.
 
-| DCF1 pin | ESP8266 | D1 mini label | Purpose                          |
-| -------- | ------- | ------------- | -------------------------------- |
-| VCC      | 3V3     | 3V3           | supply                           |
-| GND      | GND     | G             | ground                           |
-| PON      | GPIO14  | D5            | enable, **active low**           |
-| DATA     | GPIO12  | D6            | demodulated DCF77 signal          |
+| DCF1 pin | ESP8266 | D1 mini label | Purpose                                  |
+| -------- | ------- | ------------- | ---------------------------------------- |
+| VCC      | 3V3     | 3V3           | supply                                   |
+| GND      | GND     | D8, bridged to G | ground                                |
+| PON      | GPIO12  | D6            | enable, **active low**                   |
+| DATA     | GPIO13  | D7            | demodulated DCF77 signal                 |
 
 The pin numbers live at the top of [main.py](main.py) — change them there if you
 wire it differently.
 
+D8 is GPIO15, not a ground pin by itself. For the direct-plug arrangement,
+bridge D8 to the Wemos pin labelled G so the receiver gets a solid ground
+connection and GPIO15 is held low as required during boot. Do not configure D8
+as an output-high pin.
+
 PON is **active low**: the DCF1 only runs while that pin is held at 0. Creating
-the pin with `Pin(14, Pin.OUT)` and no explicit value leaves it high on the
+the pin with `Pin(12, Pin.OUT)` and no explicit value leaves it high on the
 ESP8266, and then the data line stays flat at 0 and nothing is ever decoded —
 which looks exactly like a reception problem. `main.py` therefore uses
 `Pin(PON_PIN, Pin.OUT, value=0)`. Measured on the hardware: with PON high the
@@ -102,7 +107,7 @@ Three things that bite:
 
 With a Wemos D1 mini OLED shield (0.66", 64x48, SSD1306) plugged in, `main.py`
 shows what the decoder is doing. The shield uses I2C on D1 (SCL, GPIO5) and
-D2 (SDA, GPIO4), so it does not collide with the DCF1 on D5/D6 — both fit on a
+D2 (SDA, GPIO4), so it does not collide with the DCF1 on D6/D7 — both fit on a
 triple base. Copy `oled.py` and `ui.py` along with the other files:
 
 ```

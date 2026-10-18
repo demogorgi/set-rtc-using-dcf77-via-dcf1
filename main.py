@@ -8,8 +8,8 @@ from machine import Pin, RTC, SoftI2C
 from time import sleep_ms
 
 # Wiring on a Wemos D1 mini pro (ESP8266), see README.md
-PON_PIN  = 14   # D5 - PON of the DCF1
-DATA_PIN = 12   # D6 - demodulated signal of the DCF1
+PON_PIN  = 12   # D6 - PON of the DCF1
+DATA_PIN = 13   # D7 - demodulated signal of the DCF1
 
 # Wemos D1 mini OLED shield (64x48, SSD1306): fixed I2C pins of the shield.
 # Set USE_OLED to False if no shield is plugged in.
