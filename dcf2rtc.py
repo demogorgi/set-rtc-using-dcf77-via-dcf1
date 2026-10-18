@@ -25,6 +25,24 @@ import utime
 # during normal operation - a print that takes longer than one sampling period
 # eats into the timing budget of the decoder.
 DEBUG = False
+DEBUG_PROGRESS = False
+
+# Optional callback observer(event, *args) to follow the decoder, e.g. to drive
+# a display. Events:
+#   "search", elapsedMs, level    once a second while waiting for the minute gap
+#   "gap"                         the minute gap was found
+#   "receive"                     a telegram starts
+#   "bit", count, value, bits     a bit was received (bits is the list so far)
+#   "valid", field                the telegram passed all checks
+#   "rejected", reason            the telegram was thrown away
+#   "timeout", what               "gap", "telegram" or "mark"
+#   "set", year, month, day, hour, minute, zone   the RTC was written
+observer = None
+
+
+def _emit(event, *args):
+    if observer is not None:
+        observer(event, *args)
 
 # --- signal timing ---------------------------------------------------------
 GAP_SAMPLE_MS = 100     # sampling period while looking for the missing pulse
@@ -96,21 +114,32 @@ def _daysInMonth(year, month):
 # returns True when the gap was found, False when timeout_ms elapsed
 def detectNewMinute(dcfpin, timeout_ms=GAP_TIMEOUT_MS):
     print("in detectNewMinute")
+    if DEBUG_PROGRESS:
+        print("waiting for 1.5 s of silence; DATA=%d" % dcfpin.value())
     countZeros = 0
     t = 0
     start = ticks_ms()
+    _emit("search", 0, dcfpin.value())
     while ticks_diff(ticks_ms(), start) < timeout_ms:
         if dcfpin.value() == 0:
             countZeros += 1
             if countZeros >= GAP_SAMPLES:
+                if DEBUG_PROGRESS:
+                    print("minute gap detected after %d ms" %
+                          ticks_diff(ticks_ms(), start))
+                _emit("gap")
                 return True
         else:
             countZeros = 0
         t += GAP_SAMPLE_MS
+        if t % 1000 == 0:
+            _emit("search", t, dcfpin.value())
         # never pass a negative value to sleep_ms(): if a sampling step took
         # longer than its budget we just continue without sleeping
         sleep_ms(max(0, t - ticks_diff(ticks_ms(), start)))
-    print("timeout while waiting for the start of a new minute")
+    print("timeout while waiting for the start of a new minute "
+          "(DATA=%d)" % dcfpin.value())
+    _emit("timeout", "gap")
     return False
 
 
@@ -130,6 +159,7 @@ def _bcd(timeInfo, bits, weights):
 
 def _reject(reason):
     print("telegram rejected:", reason)
+    _emit("rejected", reason)
     return None
 
 
@@ -196,8 +226,11 @@ def waitForMinuteMark(dcfpin, timeout_ms=MARK_TIMEOUT_MS, guard_ms=MARK_GUARD_MS
         elapsed = ticks_diff(ticks_ms(), start)
         if elapsed >= timeout_ms:
             print("timeout while waiting for the minute mark")
+            _emit("timeout", "mark")
             return False
         if elapsed >= guard_ms and dcfpin.value() == 1:
+            if DEBUG_PROGRESS:
+                print("minute mark detected after %d ms" % elapsed)
             return True
         sleep_ms(2)
 
@@ -209,12 +242,18 @@ def _receiveTelegram(dcf, timeout_ms):
     timeInfo = []
     count = 0
     start = ticks_ms()
+    if DEBUG_PROGRESS:
+        print("receiving 59-bit telegram")
+    _emit("receive")
     if DEBUG:
         print("bitNum: value")
     while len(timeInfo) < BITS_PER_MINUTE:
         if ticks_diff(ticks_ms(), start) > timeout_ms:
             # bits were lost, so the telegram can no longer be aligned
-            print("timeout while receiving the telegram")
+            print("timeout while receiving the telegram (%d/%d bits in %d ms)" %
+                  (len(timeInfo), BITS_PER_MINUTE,
+                   ticks_diff(ticks_ms(), start)))
+            _emit("timeout", "telegram")
             return None
         window.pop(0)
         window.append(dcf.value())
@@ -227,8 +266,17 @@ def _receiveTelegram(dcf, timeout_ms):
             if DEBUG:
                 print("%d: %d" % (len(timeInfo), bit))
             timeInfo.append(bit)
+            if DEBUG_PROGRESS and len(timeInfo) % 10 == 0:
+                print("received %d/%d bits" %
+                      (len(timeInfo), BITS_PER_MINUTE))
+            # the pulse is over and the line stays silent for the next ~600 ms,
+            # so a slow observer cannot disturb the sampling
+            _emit("bit", len(timeInfo), bit, timeInfo)
         count += 1
         sleep_ms(max(0, count * BIT_SAMPLE_MS - ticks_diff(ticks_ms(), start)))
+    if DEBUG_PROGRESS:
+        print("received complete telegram in %d ms" %
+              ticks_diff(ticks_ms(), start))
     return timeInfo
 
 
@@ -244,9 +292,16 @@ def computeTime(rtc, dcf, timeout_ms=FRAME_TIMEOUT_MS, utc=False):
     timeInfo = _receiveTelegram(dcf, timeout_ms)
     if timeInfo is None:
         return False
+    if DEBUG_PROGRESS:
+        print("validating telegram")
     field = _decodeTelegram(timeInfo)
     if field is None:
         return False
+    if DEBUG_PROGRESS:
+        print("telegram valid: %04d-%02d-%02d %02d:%02d %s" %
+              (field["year"], field["month"], field["day"], field["hour"],
+               field["minute"], field["zoneName"]))
+    _emit("valid", field)
 
     if field["dstAnnounced"]:
         print("note: a change of daylight saving time is announced within the hour")
@@ -265,11 +320,16 @@ def computeTime(rtc, dcf, timeout_ms=FRAME_TIMEOUT_MS, utc=False):
         zone = "UTC"
 
     # the decoded value is only valid from the next minute mark on
+    if DEBUG_PROGRESS:
+        print("waiting for minute mark before setting RTC")
     if not waitForMinuteMark(dcf):
         return False
 
     print("{:04d}-{:02d}-{:02d} ({:s}) {:02d}:{:02d}:00 {:s}".format(
         year, month, day, weekdayName(weekday + 1), hour, minute, zone))
+    if DEBUG_PROGRESS:
+        print("writing decoded time to RTC")
     rtc.datetime((year, month, day, weekday, hour, minute, 0, 0))
     print(rtc.datetime())
+    _emit("set", year, month, day, hour, minute, zone)
     return True

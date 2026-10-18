@@ -91,6 +91,41 @@ Three things that bite:
   see the received bits scroll by, which is the quickest way to tell a reception
   problem from a decoding problem. Without it you only get the stage messages,
   the decoded time and any errors.
+* **Progress output is enabled in `main.py`.** It reports the DATA pin level,
+  when the minute gap is found, received-bit milestones (10, 20, ...), telegram
+  validation and RTC setting. Receiving a complete telegram takes about a
+  minute; if reception times out, the output includes how many bits arrived.
+  Set `SHOW_PROGRESS = False` to turn this extra output off. Per-bit output via
+  `SHOW_BITS = True` is more intrusive and can disturb the 50 ms sampling loop.
+
+## OLED shield
+
+With a Wemos D1 mini OLED shield (0.66", 64x48, SSD1306) plugged in, `main.py`
+shows what the decoder is doing. The shield uses I2C on D1 (SCL, GPIO5) and
+D2 (SDA, GPIO4), so it does not collide with the DCF1 on D5/D6 — both fit on a
+triple base. Copy `oled.py` and `ui.py` along with the other files:
+
+```
+mpremote connect /dev/ttyUSB0 fs cp oled.py : + fs cp ui.py : + fs cp dcf2rtc.py : + fs cp main.py :
+```
+
+* **Start screen** — about 8 s of animation at every reset: a mast sends out radio
+  waves, `DCF77` appears letter by letter while a bar fills up, then the author's
+  address scrolls past.
+* **SUCHE** — waiting for the minute gap; a block sweeps along as a sign of life,
+  the bottom line shows the attempt (`V1`) and the seconds spent.
+* **EMPFANG** — progress bar plus one cell per received bit (filled square = 1,
+  dot = 0) and the count, e.g. `37/59 V2`.
+* **FEHLER** / **TIMEOUT** — why the telegram was thrown away (`PARITAET`,
+  `ZEITZONE`, `BEREICH`, ...) or which stage timed out.
+* **DCF77 OK** — after the RTC is set: large `HH:MM` with a blinking colon, a
+  seconds bar and weekday and date. The clock keeps running until Ctrl-C.
+
+Set `USE_OLED = False` in [main.py](main.py) if no shield is attached; a missing
+shield is also detected at start-up and simply skipped. The display is driven
+through `dcf2rtc.observer`, a callback that receives the decoder events, and is
+only redrawn right after a bit is complete, when the line is silent for the next
+~600 ms, so it cannot disturb the 50 ms sampling.
 
 ## How it works
 

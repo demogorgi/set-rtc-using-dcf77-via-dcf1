@@ -233,6 +233,24 @@ f = field_of(encode(BASE, cest=True))
 report("summer telegram says CEST",
        (f["zoneName"], f["utcOffset"]) == ("CEST", 2), f["zoneName"])
 
+# --- the observer hook used by the display ---------------------------------
+print()
+print("reporting progress to an observer")
+
+events = []
+dcf2rtc.observer = lambda event, *args: events.append((event, args))
+decode_signal(datetime.datetime(2026, 9, 17, 12, 34))
+dcf2rtc.observer = None
+names = [e[0] for e in events]
+bit_counts = [e[1][0] for e in events if e[0] == "bit"]
+report("events arrive in order",
+       names[0] == "search" and "gap" in names
+       and names.index("gap") < names.index("receive") < names.index("bit")
+       < names.index("valid") < names.index("set"))
+report("every bit is reported once", bit_counts == list(range(1, 60)))
+report("rtc time is reported", events[-1] == ("set", (2026, 9, 17, 12, 36, "CEST")),
+       str(events[-1]))
+
 print()
 if failures:
     print("%d FAILED:" % len(failures))
