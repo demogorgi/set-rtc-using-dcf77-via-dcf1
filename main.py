@@ -2,11 +2,7 @@
 # module: https://www.pollin.de/p/dcf-77-empfangsmodul-dcf1-810054
 # The DCF1 module receives the DCF77 signal, see https://en.wikipedia.org/wiki/DCF77
 
-import dcf2rtc
-import network
-import ntp2rtc
-from machine import Pin, RTC, SoftI2C
-from time import sleep_ms, ticks_ms, ticks_diff
+import gc
 
 # Wiring on a Wemos D1 mini pro (ESP8266), see README.md
 PON_PIN  = 12   # D6 - PON of the DCF1
@@ -31,6 +27,19 @@ SHOW_BITS = False
 # Print decoder phase changes and progress every ten received bits. A complete
 # telegram takes about a minute to arrive.
 SHOW_PROGRESS = True
+
+if USE_OLED:
+    gc.collect()
+    import oled
+    gc.collect()
+    import ui
+    gc.collect()
+
+import dcf2rtc
+import network
+import ntp2rtc
+from machine import Pin, RTC, SoftI2C
+from time import sleep_ms, ticks_ms, ticks_diff
 
 dcf2rtc.DEBUG = SHOW_BITS
 dcf2rtc.DEBUG_PROGRESS = SHOW_PROGRESS
@@ -77,8 +86,8 @@ rtc = RTC()
 # OLED shield: optional, the clock is set without it as well
 display = None
 if USE_OLED:
+    gc.collect()
     try:
-        import oled, ui
         display = ui.Display(oled.SSD1306(SoftI2C(scl=Pin(OLED_SCL),
                                                   sda=Pin(OLED_SDA),
                                                   freq=400000)), utc=USE_UTC,
