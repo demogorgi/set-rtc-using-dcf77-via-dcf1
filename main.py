@@ -83,6 +83,7 @@ if USE_OLED:
                                                   sda=Pin(OLED_SDA),
                                                   freq=400000)), utc=USE_UTC,
                              source=boot_mode.upper())
+        display.alternating_splash()
         if boot_mode == "ntp":
             display.ntp_splash()
             display.status("NTP", "WLAN", "CLAUDINE")

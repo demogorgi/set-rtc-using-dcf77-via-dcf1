@@ -85,8 +85,9 @@ SSID = "claudinet"
 PASSWORD = "your-wifi-password"
 ```
 
-The NTP start screen shows a globe/clock logo instead of the DCF77 mast.
-Synchronization continues to work without an OLED shield.
+At every boot the OLED first shows that NTP and DCF77 are used alternately,
+then shows the logo for the source selected for this boot: the NTP globe/clock
+or the DCF77 mast. Synchronization continues to work without an OLED shield.
 
 ## Connecting to the REPL
 

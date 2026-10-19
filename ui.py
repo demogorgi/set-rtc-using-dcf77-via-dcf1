@@ -70,6 +70,29 @@ class Display:
         o.line(cx - 2, top + (base - top) * 8 // 9, cx + 2, top + (base - top) * 8 // 9, 1)
         o.fill_rect(cx - 1, top - 2, 3, 3, 1)
 
+    def alternating_splash(self):
+        o = self.oled
+        message = "NTP UND DCF IM WECHSEL"
+        for x in range(64, -len(message) * 8 - 1, -3):
+            o.fill(0)
+            o.fill_rect(0, 0, 64, 9, 1)
+            o.text("ZEIT AUS", 0, 1, 0)
+            o.ellipse(15, 20, 8, 8, 1)
+            o.ellipse(15, 20, 3, 8, 1)
+            o.hline(7, 20, 17, 1)
+            o.line(25, 20, 38, 20, 1)
+            o.line(25, 20, 29, 17, 1)
+            o.line(25, 20, 29, 23, 1)
+            o.line(38, 20, 34, 17, 1)
+            o.line(38, 20, 34, 23, 1)
+            self._tower(49, 13, 29)
+            o.text("NTP", 3, 31, 1)
+            o.text("DCF", 42, 31, 1)
+            o.fill_rect(0, 40, 64, 8, 0)
+            o.text(message, x, 40, 1)
+            o.show()
+            sleep_ms(35)
+
     # animated start screen, about 7 s: a mast sends out radio waves, the name
     # appears letter by letter, then the author's address scrolls past
     def splash(self):
