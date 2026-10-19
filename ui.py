@@ -21,9 +21,10 @@ REASONS = (
 
 
 class Display:
-    def __init__(self, oled, utc=False):
+    def __init__(self, oled, utc=False, source="DCF77"):
         self.oled = oled
         self.utc = utc
+        self.source = source
         self.attempt = 0
         self.failed = False
         self._lastSecond = -1
@@ -103,6 +104,20 @@ class Display:
             sleep_ms(25)
         sleep_ms(500)
 
+    def ntp_splash(self):
+        o = self.oled
+        for frame in range(24):
+            o.fill(0)
+            o.ellipse(32, 17, 11, 11, 1)
+            o.ellipse(32, 17, 5, 11, 1)
+            o.hline(21, 17, 23, 1)
+            o.line(32, 17, 32 + (frame % 6) - 2, 11, 1)
+            o.line(32, 17, 37, 17, 1)
+            o.text("NTP", 20, 34, 1)
+            o.text("INTERNET", 0, 42, 1)
+            o.show()
+            sleep_ms(100)
+
     def search(self, seconds):
         self._header("DCF77")
         self.oled.text("SUCHE", 0, 11, 1)
@@ -135,7 +150,7 @@ class Display:
             return
         self._lastSecond = now[5]
         year, month, day, hour, minute, second, weekday = now[:7]
-        self._header("UTC  OK" if self.utc else "DCF77 OK")
+        self._header("UTC  OK" if self.utc else self.source + " OK")
         # four 16 px digits at a pitch of 14 px leave room for the colon
         self._big("%02d" % hour, 0, 12, 14)
         self._big("%02d" % minute, 36, 12, 14)

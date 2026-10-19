@@ -1,2 +1,4 @@
 __pycache__/
 *.pyc
+wifi_credentials.py
+boot_mode.txt

@@ -1,7 +1,7 @@
 # set-rtc-using-dcf77-via-dcf1
 
-MicroPython module and script that set the real time clock (RTC) of an ESP8266
-from the DCF77 time signal, received with a Pollin DCF1 module.
+MicroPython script that sets an ESP8266 real-time clock (RTC) from alternating
+DCF77 and NTP time sources. DCF77 is received with a Pollin DCF1 module.
 
 * DCF77 signal: https://en.wikipedia.org/wiki/DCF77
 * DCF1 receiver module: https://www.pollin.de/p/dcf-77-empfangsmodul-dcf1-810054
@@ -46,10 +46,14 @@ and the board is the one with a USB-serial vendor id such as `1a86:7523`
 is the built-in Intel AMT serial-over-LAN port, which happily accepts a
 connection and then stays silent forever.
 
-Copy both files to the board, e.g. with [ampy](https://github.com/scientifichackers/ampy):
+Copy `dcf2rtc.py`, `ntp2rtc.py`, `main.py` and your local
+`wifi_credentials.py` to the board, e.g. with
+[ampy](https://github.com/scientifichackers/ampy):
 
 ```
 ampy --port COM14 put dcf2rtc.py
+ampy --port COM14 put ntp2rtc.py
+ampy --port COM14 put wifi_credentials.py
 ampy --port COM14 put main.py
 ```
 
@@ -59,12 +63,30 @@ in one:
 
 ```
 mpremote connect COM14 fs cp dcf2rtc.py :
+mpremote connect COM14 fs cp ntp2rtc.py :
+mpremote connect COM14 fs cp wifi_credentials.py :
 mpremote connect COM14 fs cp main.py :
 ```
 
-`main.py` runs automatically on boot. It retries until one telegram decodes
-cleanly, which takes at least one minute and, with a weak signal, considerably
-longer.
+`main.py` runs automatically on boot and alternates time sources: the first
+boot uses DCF77, the next uses NTP over Wi-Fi, then DCF77 again. The next source
+is saved in `boot_mode.txt` on the board. If the device has no state file yet,
+it starts with DCF77. Each source retries until it gets a valid time; after
+initial synchronization, it synchronizes again daily at 03:05 using that
+boot's selected source. This is German local time by default; with `USE_UTC =
+True`, the schedule is 03:05 UTC.
+
+The ESP8266 MicroPython firmware does not provide a reliable WPS API, so NTP
+uses Wi-Fi credentials instead. Create a local `wifi_credentials.py` beside
+`main.py` (it is excluded from Git):
+
+```python
+SSID = "claudinet"
+PASSWORD = "your-wifi-password"
+```
+
+The NTP start screen shows a globe/clock logo instead of the DCF77 mast.
+Synchronization continues to work without an OLED shield.
 
 ## Connecting to the REPL
 
@@ -199,6 +221,7 @@ The announcement bits are evaluated too: an upcoming daylight saving change
 ## Tests
 
     python tests/test_dcf2rtc.py
+    python tests/test_ntp2rtc.py
 
 [tests/test_dcf2rtc.py](tests/test_dcf2rtc.py) replaces the receiver with a
 virtual clock and a fake pin that rebuilds the modulated carrier from it, so a
