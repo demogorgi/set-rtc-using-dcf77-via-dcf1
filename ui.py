@@ -167,8 +167,9 @@ class Display:
         self.oled.text("V%d" % self.attempt, 0, 40, 1)
         self.oled.show()
 
-    def clock(self):
-        now = localtime()
+    def clock(self, now=None):
+        if now is None:
+            now = localtime()
         if now[5] == self._lastSecond:
             return
         self._lastSecond = now[5]

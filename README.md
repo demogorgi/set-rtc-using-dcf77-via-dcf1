@@ -76,6 +76,11 @@ initial synchronization, it synchronizes again daily at 03:05 using that
 boot's selected source. This is German local time by default; with `USE_UTC =
 True`, the schedule is 03:05 UTC.
 
+The OLED clock and the daily synchronization schedule use MicroPython's
+monotonic millisecond timer rather than the ESP8266 RTC, which can drift
+significantly. Each successful DCF77 or NTP synchronization resets this
+corrected time base. The RTC itself is still set by the selected time source.
+
 The ESP8266 MicroPython firmware does not provide a reliable WPS API, so NTP
 uses Wi-Fi credentials instead. Create a local `wifi_credentials.py` beside
 `main.py` (it is excluded from Git):

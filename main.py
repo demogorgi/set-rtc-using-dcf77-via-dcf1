@@ -38,6 +38,7 @@ if USE_OLED:
 import dcf2rtc
 import network
 import ntp2rtc
+import timebase
 from machine import Pin, RTC, SoftI2C
 from time import sleep_ms, ticks_ms, ticks_diff
 
@@ -82,6 +83,7 @@ if boot_mode == "dcf":
 
 # real time clock
 rtc = RTC()
+corrected_clock = timebase.CorrectedClock()
 
 # OLED shield: optional, the clock is set without it as well
 display = None
@@ -151,19 +153,21 @@ def sync_time():
         sync_ntp()
     else:
         sync_dcf()
+    corrected_clock.set(rtc.datetime())
 
 
 sync_time()
-last_sync_date = rtc.datetime()[:3]
+last_sync_date = corrected_clock.now(rtc.datetime())[:3]
 
 # Refresh the RTC once a day at 03:05 using the selected source for this boot.
+# The display and schedule use ticks_ms so they are not affected by RTC drift.
 while True:
-    now = rtc.datetime()
-    if now[4] == 3 and now[5] >= 5 and now[:3] != last_sync_date:
+    now = corrected_clock.now(rtc.datetime())
+    if now[3] == 3 and now[4] >= 5 and now[:3] != last_sync_date:
         print("daily time synchronization via", boot_mode.upper())
         sync_time()
-        last_sync_date = rtc.datetime()[:3]
+        last_sync_date = corrected_clock.now(rtc.datetime())[:3]
 
     if display is not None and not display.failed:
-        display.clock()
+        display.clock(now)
     sleep_ms(100)

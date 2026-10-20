@@ -10,6 +10,8 @@
 
 import framebuf
 
+DEFAULT_CONTRAST = 128 # range is 0 to 255
+
 _INIT = (
     (0xAE,),            # display off
     (0xD5, 0x80),       # clock divide / oscillator
@@ -21,7 +23,6 @@ _INIT = (
     (0xA1,),            # segment remap
     (0xC8,),            # COM scan direction
     (0xDA, 0x12),       # COM pins
-    (0x81, 0xCF),       # contrast
     (0xD9, 0xF1),       # pre-charge
     (0xDB, 0x40),       # VCOMH deselect
     (0xA4,),            # follow RAM content
@@ -42,14 +43,15 @@ class SSD1306(framebuf.FrameBuffer):
         super().__init__(self.buffer, width, height, framebuf.MONO_VLSB)
         for cmd in _INIT:
             self._cmd(*cmd)
+        self.contrast(contrast=DEFAULT_CONTRAST)
         self.fill(0)
         self.show()
 
     def _cmd(self, *cmd):
         self.i2c.writeto(self.addr, b"\x00" + bytes(cmd))
 
-    def contrast(self, value):
-        self._cmd(0x81, value)
+    def contrast(self, contrast):
+        self._cmd(0x81, contrast)
 
     def poweroff(self):
         self._cmd(0xAE)
